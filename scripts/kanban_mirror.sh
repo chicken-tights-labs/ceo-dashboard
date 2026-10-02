@@ -1,6 +1,6 @@
 #!/bin/bash
-# Hourly Kanban Mirror Sync
-# Runs every hour to export board state to Obsidian
+# Kanban Mirror Sync - Morning & Night
+# Runs twice daily to export board state to Obsidian
 
 export HERMES_HOME="/home/maria_robbins/.hermes"
 export PYTHONPATH="/home/maria_robbins/.hermes/hermes-agent:${PYTHONPATH:-}"
