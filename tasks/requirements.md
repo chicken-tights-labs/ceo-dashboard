@@ -7,6 +7,7 @@ So that I can see all active work in Obsidian
 
 ### Scenario: Export current board state
 ```gherkin
+@cursor
 Given the kanban board has active tickets
 When the hourly cron job runs
 Then a markdown table is written to "Obsidian Vault/Active Projects/Kanban Mirror.md"
@@ -19,6 +20,9 @@ I want Gherkin stories in Obsidian to automatically become kanban tickets
 So that I don't have to manually enter tickets
 
 ### Scenario: New requirement triggers ticket creation
+```gherkin
+@cursor
+Given a new file is added to "CEO-Dashboard/tasks/requirements.md"
 When the file contains Gherkin scenarios tagged with @cursor
 Then a new kanban ticket is created with:
   | Field  | Value          |
@@ -34,6 +38,7 @@ So that I can monitor progress at a glance
 
 ### Scenario: View live board status
 ```gherkin
+@cursor
 When I navigate to https://hermes.chickentightslabs.com/ceo-dashboard
 Then I see a color-coded table of active tickets
 And tickets are grouped by epic
