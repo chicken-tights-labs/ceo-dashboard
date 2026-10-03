@@ -11,11 +11,14 @@
 - [ ] Format as markdown table with status/assignee columns
 - [ ] Auto-tag with `@needs-review` where applicable
 
-## Priority 3: Auto-Ticket Creator
-- [ ] Monitor Obsidian requirements folder for new Gherkin files
-- [ ] Parse scenarios tagged with `@cursor`
-- [ ] Generate GitHub issue + kanban ticket pair
-- [ ] Assign to Cursor via `@platform:cursor` label
+## Priority 3: Auto-Ticket Creator ✅
+- [x] Monitor Obsidian requirements folder for new Gherkin files
+- [x] Parse scenarios tagged with `@cursor`
+- [x] Generate GitHub issue + kanban ticket pair
+- [x] Assign to Cursor via `@platform:cursor` label
+- [x] Script: `scripts/auto_ticket_creator.py`
+- [x] Cron: hourly at minute 3
+- [x] State file: `auto-ticket-state.json` (deduplication)
 
 ## Priority 4: Live Dashboard UI
 - [ ] Responsive HTML table showing active tickets
