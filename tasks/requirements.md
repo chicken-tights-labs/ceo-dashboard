@@ -13,14 +13,12 @@ Then a markdown table is written to "Obsidian Vault/Active Projects/Kanban Mirro
 And the file shows ticket ID, title, status, and assignee
 ```
 
-## Feature: Auto-Ticket Creator
+## Feature: Auto-Ticket Creator @cursor
 As a requirements author
 I want Gherkin stories in Obsidian to automatically become kanban tickets
 So that I don't have to manually enter tickets
 
 ### Scenario: New requirement triggers ticket creation
-```gherkin
-Given a new file is added to "CEO-Dashboard/tasks/requirements.md"
 When the file contains Gherkin scenarios tagged with @cursor
 Then a new kanban ticket is created with:
   | Field  | Value          |
@@ -28,7 +26,6 @@ Then a new kanban ticket is created with:
   | Body   | <full Gherkin content>   |
   | Labels | platform:cursor,needs-review |
   | Status | ready                    |
-```
 
 ## Feature: Dashboard UI
 As a CEO/project owner
