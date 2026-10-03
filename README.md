@@ -28,3 +28,18 @@ ceo-dashboard/
 ## Live URLs
 - [GitHub Repo](https://github.com/chicken-tights-labs/ceo-dashboard)
 - [Dashboard UI](https://hermes.chickentightslabs.com/ceo-dashboard)
+
+## Usage
+
+### Run manually
+```bash
+python3 src/kanban_mirror.py
+```
+
+### Schedule hourly (cron)
+```cron
+0 * * * * /path/to/scripts/kanban_mirror.sh
+```
+
+### Output
+Markdown file at: `Obsidian Vault/Active Projects/Kanban Mirror.md`
