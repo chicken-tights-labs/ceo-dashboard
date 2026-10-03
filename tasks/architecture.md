@@ -5,15 +5,15 @@ The CEO Dashboard operates as a three-layer system:
 
 1. **Data Layer**: Reads from Hermes Kanban SQLite DB
    - Path: `/home/maria_robbins/.hermes/kanban/boards/salesforce-headless-dev/kanban.db`
-   - Query pattern: SELECT tasks by status, group by epic/assignee
+   - Query pattern: SELECT tasks by status, group by status/assignee
 
-2. **Service Layer**: FastAPI micro-service on port 8191
+2. **Service Layer**: FastAPI micro-service on port 8081
    - Endpoints:
      - `/` → HTML dashboard page
-     - `/api/data` → Plain text ASCII dashboard
-   - Auto-refreshes every 60 seconds
+     - `/api/state` → Plain text ASCII dashboard
+   - Auto-refreshes every 5 minutes
 
-3. **Presentation Layer**: 
+3. **Presentation Layer**:
    - HTML template with JavaScript polling
    - Served behind Cloudflare Tunnel with Bypass policy
    - Accessible at: hermes.chickentightslabs.com/ceo-dashboard/
@@ -24,7 +24,7 @@ The CEO Dashboard operates as a three-layer system:
 3. No CI/CD yet — manual redeploy via:
    ```bash
    # On VM:
-   cd ~/.hermes/tools && python3 ceo_dashboard_fastapi.py &
+   systemctl restart ceo-dashboard
    ```
 
 ## Security Notes
