@@ -1,0 +1,17 @@
+[Unit]
+Description=CEO Dashboard Server
+After=network.target
+
+[Service]
+Type=simple
+User=maria_robbins
+WorkingDirectory=/home/maria_robbins/sf-project/ceo-dashboard
+Environment=PYTHONPATH=/home/maria_robbins/.hermes/hermes-agent
+ExecStart=/home/maria_robbins/.hermes/hermes-agent/venv/bin/python /home/maria_robbins/sf-project/ceo-dashboard/src/dashboard_server.py
+Restart=always
+RestartSec=5
+StandardOutput=append:/tmp/dashboard-server.log
+StandardError=append:/tmp/dashboard-server.log
+
+[Install]
+WantedBy=multi-user.target
