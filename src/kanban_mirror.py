@@ -15,7 +15,8 @@ OUTPUT_FILE = OBSIDIAN_VAULT / "Active Projects" / "Kanban Mirror.md"
 
 def get_board_state():
     """Query kanban database and return tasks grouped by status"""
-    conn = sqlite3.connect(KANBAN_DB)
+    conn = sqlite3.connect(KANBAN_DB, timeout=30)
+    conn.execute("PRAGMA busy_timeout = 30000")
     conn.row_factory = sqlite3.Row
     tasks = conn.execute(
         "SELECT id, title, status, assignee, body, created_at FROM tasks "

@@ -13,6 +13,8 @@ from datetime import datetime
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.types import ASGIApp, Scope
 import jinja2
 
 KANBAN_DB = "/home/maria_robbins/.hermes/kanban/boards/salesforce-headless-dev/kanban.db"
@@ -32,6 +34,41 @@ _env = jinja2.Environment(
 
 app = FastAPI(title="CEO Dashboard", description="Live Kanban Board")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+# CORS headers for browser access through Cloudflare Tunnel
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class PathPrefixStripper(ASGIApp):
+    """Strips the /ceo-dashboard prefix so routes work behind the Cloudflare Tunnel.
+
+    The cloudflared tunnel forwards /ceo-dashboard* to this app preserving the
+    full path. Without stripping, /ceo-dashboard/ would 404 because the app has
+    no route at that path.
+    """
+
+    def __init__(self, app, prefix="/ceo-dashboard"):
+        self.app = app
+        self.prefix = prefix.rstrip("/")
+
+    async def __call__(self, scope: Scope, receive, send):
+        if scope["type"] == "http":
+            path = scope["path"]
+            if path.startswith(self.prefix):
+                scope["path"] = path[len(self.prefix):] or "/"
+                # Also fix the root_path so URL generation works
+                if not scope["path"].startswith("/"):
+                    scope["path"] = "/" + scope["path"]
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(PathPrefixStripper, prefix="/ceo-dashboard")
 
 # Status order for display
 STATUS_ORDER = ["ready", "todo", "running", "blocked", "done"]
@@ -53,7 +90,8 @@ STATUS_LABELS = {
 
 def get_board_state():
     """Query kanban DB for active tasks grouped by status"""
-    conn = sqlite3.connect(KANBAN_DB)
+    conn = sqlite3.connect(KANBAN_DB, timeout=30)
+    conn.execute("PRAGMA busy_timeout = 30000")
     conn.row_factory = sqlite3.Row
     tasks = conn.execute(
         "SELECT id, title, status, assignee, body, created_at, priority "
