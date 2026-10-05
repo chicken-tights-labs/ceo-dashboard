@@ -70,26 +70,53 @@ class PathPrefixStripper(ASGIApp):
 
 app.add_middleware(PathPrefixStripper, prefix="/ceo-dashboard")
 
-# Status order for display
-STATUS_ORDER = ["ready", "todo", "running", "blocked", "done"]
+# Status order for display.
+#
+# This MUST stay a superset of every status the kanban DB can hold. Hermes
+# accepts: {"triage", "todo", "scheduled", "ready", "running", "blocked",
+# "review", "done", "archived"} (hermes_cli/kanban_db.py VALID_STATUSES).
+# "archived" is intentionally omitted — the board query filters it out.
+STATUS_ORDER = ["ready", "review", "todo", "scheduled", "running", "triage", "blocked", "done"]
 STATUS_COLORS = {
-    "ready": "#6b7280",     # gray
-    "todo": "#3b82f6",      # blue
-    "running": "#10b981",   # green
-    "blocked": "#ef4444",   # red
-    "done": "#22c55e",      # emerald
+    "ready": "#6b7280",      # gray
+    "review": "#a855f7",     # purple
+    "todo": "#3b82f6",       # blue
+    "scheduled": "#06b6d4",  # cyan
+    "running": "#10b981",    # green
+    "triage": "#f59e0b",     # amber
+    "blocked": "#ef4444",    # red
+    "done": "#22c55e",       # emerald
 }
 STATUS_LABELS = {
     "ready": "Queued",
+    "review": "In Review",
     "todo": "Backlog",
+    "scheduled": "Scheduled",
     "running": "In Progress",
+    "triage": "Triage",
     "blocked": "Blocked",
     "done": "Complete",
 }
 
+# Fallback for a status the dashboard has never seen. Rendering an unknown
+# status beats raising KeyError and taking the whole board down.
+UNKNOWN_STATUS_COLOR = "#9ca3af"
+
+
+def _status_sort_key(status: str) -> int:
+    """Known statuses first in STATUS_ORDER; unknown ones last."""
+    try:
+        return STATUS_ORDER.index(status)
+    except ValueError:
+        return len(STATUS_ORDER)
+
 
 def get_board_state():
-    """Query kanban DB for active tasks grouped by status"""
+    """Query kanban DB for active tasks grouped by status.
+
+    Tolerates any status value: a card whose status is not in STATUS_ORDER is
+    still rendered (in its own column) rather than raising KeyError.
+    """
     conn = sqlite3.connect(KANBAN_DB, timeout=30)
     conn.execute("PRAGMA busy_timeout = 30000")
     conn.row_factory = sqlite3.Row
@@ -99,7 +126,14 @@ def get_board_state():
     ).fetchall()
     conn.close()
 
-    board = {status: [] for status in STATUS_ORDER}
+    # Seed the known columns, then add any extra status actually present.
+    statuses = list(STATUS_ORDER)
+    for t in tasks:
+        if t["status"] and t["status"] not in statuses:
+            statuses.append(t["status"])
+    statuses.sort(key=_status_sort_key)
+
+    board = {status: [] for status in statuses}
 
     for t in tasks:
         short_id = t["id"][-6:] if t["id"] else ""
@@ -131,13 +165,18 @@ def get_board_state():
 
 
 def get_summary_stats(board):
-    """Calculate summary stats from board state"""
+    """Calculate summary stats from board state.
+
+    Iterates the board's own keys rather than STATUS_ORDER so a card in an
+    unexpected status still counts toward the total.
+    """
     return {
-        "total": sum(len(board[s]) for s in STATUS_ORDER),
-        "queued": len(board["ready"]),
-        "in_progress": len(board["running"]),
-        "blocked": len(board["blocked"]),
-        "complete": len(board["done"]),
+        "total": sum(len(v) for v in board.values()),
+        "queued": len(board.get("ready", [])),
+        "review": len(board.get("review", [])),
+        "in_progress": len(board.get("running", [])),
+        "blocked": len(board.get("blocked", [])),
+        "complete": len(board.get("done", [])),
     }
 
 
@@ -154,6 +193,8 @@ async def dashboard_root(request: Request):
         stats=stats,
         status_labels=STATUS_LABELS,
         status_colors=STATUS_COLORS,
+        status_order=list(board.keys()),
+        unknown_status_color=UNKNOWN_STATUS_COLOR,
         last_updated=datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
     )
 

@@ -86,9 +86,9 @@ server {
 - **Dedup key**: SHA256 of `scenario_name + gherkin_body` (first 16 hex chars), computed by `scenario_hash()` in the script
 - The key is **not** the scenario `@cursor` name — it's a content hash. Renaming a scenario still produces a new hash, so a renamed scenario creates a new ticket.
 
-## No /health Endpoint
+## Health Endpoint
 
-The app has only two routes: `/` (HTML dashboard) and `/api/state` (JSON). `curl http://127.0.0.1:8081/health` returns **404**. Use `/api/state` for health checks until a `/health` endpoint is added (separate story, out of scope here).
+The app has three routes: `/` (HTML dashboard), `/api/state` (JSON), and `/health` (added in US-DASH-006, returns `{"status": "ok", "service": "ceo-dashboard"}`). Use `/health` for liveness checks and `/api/state` for board data.
 
 ## Known Gotchas
 
@@ -100,6 +100,8 @@ The app has only two routes: `/` (HTML dashboard) and `/api/state` (JSON). `curl
 5. **Auto-ticket creator reads only requirements.md**: The script scans `tasks/requirements.md` for `@cursor` scenarios. It does **not** read GitHub issues. To auto-generate kanban tickets, write Gherkin in requirements.md.
 6. **Logs go to two places**: systemd writes to `/tmp/dashboard-server.log` AND to journald (`journalctl -u ceo-dashboard --no-pager`). The `/tmp` file is not rotated — watch for disk growth.
 7. **Repo-managed cron scripts must be executable and called by repo path**: The crontab entries for `kanban_mirror.sh` and `auto_ticket_creator.sh` point directly at `/home/maria_robbins/sf-project/ceo-dashboard/scripts/`. There are no copies in `~/.hermes/scripts/` to keep in sync. The scripts are committed with the executable bit; if a cron run fails with "Permission denied", run `chmod +x scripts/*.sh` in the clone. See "Cron Script-to-Python Mapping" below.
+
+8. **Dashboard status list must cover every kanban status**: `src/dashboard_server.py` builds its board columns from `STATUS_ORDER` plus any status found in the DB. Hermes' kanban accepts nine statuses (`triage`, `todo`, `scheduled`, `ready`, `running`, `blocked`, `review`, `done`, `archived`). A card in a status with no column previously raised `KeyError` and returned **HTTP 500 for the entire board**, not just that card — `github_sync.py` moving a card to `review` would have triggered it. Keep `STATUS_ORDER`/`STATUS_COLORS`/`STATUS_LABELS` a superset of the eight displayed statuses; unknown statuses now degrade gracefully. Regression tests: `tests/test_dashboard_status.py`. Run the suite with `python -m unittest discover -s tests -v` (venv Python).
 
 ## Cron Script-to-Python Mapping
 
