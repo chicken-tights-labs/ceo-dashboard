@@ -1,53 +1,13 @@
-# Cursor Rules — CEO Dashboard
+# CEO Dashboard — Workflow Rules
 
-## Source of Truth
-- GitHub `main` is the only finished copy of the code. The VM repo clone at
-  `/home/maria_robbins/sf-project/ceo-dashboard` is the canonical working copy
-  for deployment.
-- If the running app and `tasks/architecture.md` disagree, change the doc in
-  the same pull request. Docs-as-code: never let them drift.
+All workflow rules are defined in: docs/WORKFLOW.md
+This file exists for Cursor Agent mode only — Hermes follows the same rules via its
+ceo-dashboard-workflow skill (loaded on the VM). Both reference docs/WORKFLOW.md as
+the single source of truth.
 
-## Kanban ↔ GitHub State Mapping
-- A kanban card and its GitHub issue stay **open** (status `ready`/`ready`)
-  until the pull request is merged.
-- **Do not** close the GitHub issue or move the kanban card to `done` when
-  code is only running on the VM (deployed but not merged to `main`).
-- Hermes kanban `done` means: PR merged **AND** `git pull` + service restart
-  completed on the VM.
-- Use the `needs-review` label only when a PR is waiting on a person. Do not
-  put it on a story that has no branch yet.
-- When a PR is opened, move the kanban card to `review` (matches GitHub state).
-- When a PR is merged, `git pull` in the repo clone, then
-  `systemctl restart ceo-dashboard`, then mark the card `done`.
-
-## Branch & PR Workflow
-- One story, one branch: `feature/US-DASH-00N-short-name`, cut from latest `main`.
-- Set the kanban card's `branch_name` field to match the git branch so the DB
-  tracks the active branch.
-- Push the branch and open a PR whose body includes `Closes #<issue>`.
-
-## Kanban IDs
-- Each story gets its own kanban ID. Do not reuse `t_dash_01` (the EPIC-05
-  umbrella card) for child stories.
-- New kanban tasks: status `ready`, assignee `@platform:cursor`.
-
-## Terminal Lane (Hermes-specific)
-- Tasks assigned to `@platform:cursor` are **terminal lane** — the Hermes
-  dispatcher will NOT auto-spawn workers for them. They wait for manual pickup
-  in Cursor IDE. This is expected, not a bug.
-- If a `@platform:cursor` task was previously auto-spawned and crashed (e.g.
-  Python path errors), set `max_retries=0` via raw SQL to trip the circuit
-  breaker before reassigning to `@platform:cursor`:
-  ```sql
-  UPDATE tasks SET max_retries=0 WHERE id='t_dash_NN';
-  ```
-
-## Deployment
-- The CEO Dashboard runs as a systemd service: `sudo systemctl restart ceo-dashboard`
-- Do NOT use `cd ~/.hermes/tools && python3 ceo_dashboard_fastapi.py &` — that
-  is the old pre-systemd deployment method.
-- After merge: `git pull origin main` → `sudo systemctl restart ceo-dashboard` →
-  verify the service is healthy:
-  ```bash
-  curl -s http://127.0.0.1:8081/api/state | jq .
-  ```
+Key points:
+- No direct pushes to main; always use a feature branch + PR
+- Do not implement @platform:cursor stories
+- Do not close issues/mark cards done before PR merge + VM deploy
+- See docs/WORKFLOW.md for full details: roles, state machine, deployment, handoff protocol
+- See docs/environment.md for VM service/port/path facts

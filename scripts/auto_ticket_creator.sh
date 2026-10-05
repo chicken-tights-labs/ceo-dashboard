@@ -2,7 +2,7 @@
 # Auto-Ticket Creator - Scans for @cursor Gherkin scenarios
 # Runs hourly to catch new requirements
 
-cd /home/maria_robbins/sf-project/ceo-dashboard
+cd /home/maria_robbins/sf-project/ceo-dashboard || exit
 
 export HERMES_HOME="/home/maria_robbins/.hermes"
 export PYTHONPATH="/home/maria_robbins/.hermes/hermes-agent:${PYTHONPATH:-}"
