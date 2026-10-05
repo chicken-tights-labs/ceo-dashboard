@@ -166,6 +166,13 @@ async def api_state():
     return {"board": board, "stats": stats}
 
 
+
+
+@app.get("/health")
+async def health():
+    """Health check endpoint for monitoring"""
+    return {"status": "ok", "service": "ceo-dashboard"}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8081)
