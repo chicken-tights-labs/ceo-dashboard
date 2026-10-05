@@ -55,7 +55,19 @@ when an open PR contains `Closes #N`. Regression coverage lives in
 When behind NGINX, the app's stripper is redundant (NGINX already stripped it). Both must agree on which strips — currently both do.
 
 ## CORS
-The app sets `allow_origins=["*"]` combined with `allow_credentials=True`. This is a known issue and should be tightened to specific origins. It is not yet tracked as its own story; file one before changing it.
+CORS uses an explicit allowlist and no credentials (US-DASH-012, `ALLOWED_ORIGINS` in `src/dashboard_server.py`):
+
+| Origin | Why |
+|---|---|
+| `https://hermes.chickentightslabs.com` | Public dashboard host behind the Cloudflare Tunnel |
+| `http://localhost:8081` | Local access on the VM |
+| `http://127.0.0.1:8081` | Local access on the VM |
+
+- `allow_credentials=False`. The dashboard is read-only and uses no cookies, so credentialed CORS is never needed.
+- A wildcard origin is never combined with credentials. The old config (`["*"]` plus `allow_credentials=True`) made Starlette echo any `Origin` back, effectively allowing every site. Tests assert this cannot return (`tests/test_dashboard_cors.py`).
+- An origin is scheme + host + port; the `/ceo-dashboard` path is not part of it. The page and `/api/state` are served from the same origin, so CORS only affects requests from other sites.
+- Origins not on the list get no `Access-Control-Allow-Origin` header, and preflight requests from them get HTTP 400. This does not stop non-browser clients such as `curl`; CORS is a browser-side control.
+- Out of scope: authentication, the Cloudflare Access policy, and the NGINX/tunnel config.
 
 ## Deployment Flow
 1. Repo lives at `/home/maria_robbins/sf-project/ceo-dashboard`

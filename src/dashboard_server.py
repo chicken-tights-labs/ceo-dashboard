@@ -35,11 +35,23 @@ _env = jinja2.Environment(
 app = FastAPI(title="CEO Dashboard", description="Live Kanban Board")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-# CORS headers for browser access through Cloudflare Tunnel
+# CORS: explicit allowlist, no credentials (US-DASH-012).
+#
+# An origin is scheme + host + port; the /ceo-dashboard path is not part of it.
+# The dashboard is read-only and its page and API share one origin, so this list
+# only matters for other browser origins. Never combine "*" with credentials:
+# Starlette would echo any Origin back, which allows every site.
+# To add a hostname, add it here and update docs/environment.md (CORS gotcha).
+ALLOWED_ORIGINS = [
+    "https://hermes.chickentightslabs.com",
+    "http://localhost:8081",
+    "http://127.0.0.1:8081",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
