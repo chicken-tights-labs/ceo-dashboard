@@ -5,6 +5,7 @@ A lightweight, visual workflow system for tracking Salesforce development work â
 ## Features
 - **Static Kanban Mirror**: Twice-daily (09:00 and 21:00) exports of board status to markdown
 - **Auto-Ticket Creator**: Gherkin stories in Obsidian â†’ Kanban tickets
+- **GitHub Sync Bridge**: Every 15 minutes, open GitHub issues become kanban cards and open PRs (`Closes #N`) move cards to review (`scripts/github_sync.py`)
 - **Live Dashboard UI**: Web interface at hermes.chickentightslabs.com/ceo-dashboard
 
 ## Structure
