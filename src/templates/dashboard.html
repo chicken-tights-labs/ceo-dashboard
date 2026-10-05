@@ -5,7 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="refresh" content="300"> <!-- Auto-refresh every 5 min -->
     <title>CEO Dashboard - Kanban Board</title>
-    <link rel="stylesheet" href="/static/dashboard.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Configure Tailwind to include custom font
+        tailwind.config = {
+            theme: { extend: { fontFamily: { mono: ['SF Mono', 'Monaco', 'monospace'] } } }
+        }
+    </script>
+    <style>
+        /* Custom overrides on top of compiled Tailwind */
+        body { font-family: 'SF Mono', 'Monaco', monospace; }
+        .group:hover { transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); }
+        span[class*="bg-purple-900"] { font-size: 0.7rem; }
+    </style>
 </head>
 <body class="h-full bg-gray-900 text-gray-100">
     <div class="container mx-auto px-4 py-6">
