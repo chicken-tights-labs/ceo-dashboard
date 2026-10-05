@@ -109,6 +109,7 @@ Single source of truth for which file each cron entry executes. Prevents VM-to-r
 |---|---|---|---|
 | `0 9,21 * * *` | `/home/maria_robbins/sf-project/ceo-dashboard/scripts/kanban_mirror.sh` | `src/kanban_mirror.py` | system `python3` (stdlib only) |
 | `3 * * * *` | `/home/maria_robbins/sf-project/ceo-dashboard/scripts/auto_ticket_creator.sh` | `scripts/auto_ticket_creator.py` | system `python3` (stdlib only) |
+| `*/15 * * * *` | `/home/maria_robbins/sf-project/ceo-dashboard/scripts/github_sync.sh` | `scripts/github_sync.py` | system `python3` (stdlib only; needs authenticated `gh` on PATH) |
 | `0 23 * * *` | `~/.hermes/scripts/journal_obsidian.py` | N/A (inline) | system `python3` |
 | `0 * * * *` | `~/scripts/sync-obsidian-vault.sh` | N/A (rclone) | N/A |
 | `0 3 1,4,7,10 *` | `~/.hermes/scripts/hermes-backup.sh` | N/A | N/A |

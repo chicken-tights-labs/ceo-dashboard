@@ -45,7 +45,21 @@ The app sets `allow_origins=["*"]` combined with `allow_credentials=True`. This 
 ## Logs
 - App output goes to `/tmp/dashboard-server.log` (systemd `StandardOutput=append`)
 - Also available via journald: `journalctl -u ceo-dashboard --no-pager`
-- Cron job logs: `kanban_mirror.sh` → `/home/maria_robbins/logs/kanban-mirror.log`, `auto_ticket_creator.sh` → `/home/maria_robbins/logs/auto-ticket.log`
+- Cron job logs: `kanban_mirror.sh` → `/home/maria_robbins/logs/kanban-mirror.log`, `auto_ticket_creator.sh` → `/home/maria_robbins/logs/auto-ticket.log`, `github_sync.sh` → `/home/maria_robbins/logs/github-sync.log`
+
+## GitHub Sync Bridge (US-DASH-004)
+`scripts/github_sync.py` polls GitHub with `gh` every 15 minutes (cron) and reconciles into the kanban DB. No webhook and no public endpoint: the dashboard app stays read-only.
+
+| GitHub event | Kanban effect |
+|---|---|
+| Open issue with no card | New `ready` card, assignee `@platform:cursor`, `GH #N` in the body; one comment on the issue with the card id |
+| Open PR with `Closes #N` | Card moves to `review` (only from ready/todo/running); `branch_name` is set if the column exists |
+| Merged PR with `Closes #N` | Card stays in `review`; a `merged_awaiting_deploy` event is logged. The Deployer sets `done` after VM deploy + health check (`docs/WORKFLOW.md` rule 3) |
+
+- Issues labelled `epic` never get a card (override with `GH_SYNC_SKIP_LABELS`).
+- Cards are matched by the `GH #N` marker, so a lost state file does not create duplicates.
+- State file: `~/.hermes/scripts/github-sync-state.json`. Preview changes with `python3 scripts/github_sync.py --dry-run`.
+- Overlap with the auto-ticket creator: it builds cards from `tasks/requirements.md`, this script builds them from GitHub issues. A story that exists in both places can still produce two cards, because only `GH #N` is deduped.
 
 ## Security Notes
 - Service binds to `127.0.0.1:8081` only (not exposed directly on the network)
