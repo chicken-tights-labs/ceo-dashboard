@@ -10,7 +10,7 @@
 | **Implementer** | Cursor (Agent mode) | All `@platform:cursor` stories |
 | **Hermes Worker** | Hermes | Non-`@platform:cursor` stories (auto-spawned) |
 | **Reviewer** | Maria (manual) or Cursor | PR review — `needs-review` label gates merge |
-| **Merger** | Maria (manual) | Merges PR to `main` only after approval |
+| **Merger** | Maria; Hermes for its own non-`@platform:cursor` PRs | Merges PR to `main` once CI is green. GitHub requires no approval (see section 8), so the merger checks CI by hand. Maria merges all `@platform:cursor` PRs and any PR that changes branch protection, CI, or this policy |
 | **Deployer** | Hermes (post-merge) | `git pull` + `systemctl restart ceo-dashboard` |
 
 ## 2. State Machine
@@ -30,7 +30,7 @@
 
 ## 3. Hard Rules for Hermes
 
-1. **No direct pushes to `main`.** For a production fix that can't wait, use a `hotfix/` branch and an expedited PR. Maria bypasses branch protection only for a true service outage, and a retro issue is filed afterward.
+1. **No direct pushes to `main`.** For a production fix that can't wait, use a `hotfix/` branch and an expedited PR. Routine merges need no bypass because required approvals are 0, so **never use `gh pr merge --admin`** or turn off branch protection for a normal PR. Maria bypasses branch protection only for a true service outage, and a retro issue is filed afterward.
 2. **Do not implement stories assigned to `@platform:cursor`.** These are Cursor's terminal lane — they wait for manual pickup in Cursor IDE.
 3. **Do not close an issue or mark a card `done` before the PR merges AND the VM is updated.**
 4. **After merge:** `git pull origin main` → `sudo systemctl restart ceo-dashboard` → verify with `curl -s http://127.0.0.1:8081/api/state | jq .`
@@ -81,7 +81,8 @@ When Hermes finishes or fixes work, add a comment on the GitHub issue covering:
 
 ## 8. Guardrails
 
-- **Branch protection on `main`** (GitHub repo settings): require PR before merging, require status checks, require 1 approval.
+- **Branch protection on `main`** (GitHub repo settings, as of 2026-10-05): require a PR before merging with **0 required approvals** (a solo owner cannot approve their own PR, which previously forced `--admin` merges), linear history (squash or rebase merges), no force pushes, no deletions, `enforce_admins` on.
+- **Required status checks are NOT enforced by GitHub.** `syntax-check` and `shell-lint` run on every PR, but a red check does not block the merge button. Until they are added under "Require status checks to pass", the merger must confirm CI is green before merging. With approvals at 0, this manual check is the only gate.
 - **CI check** (`.github/workflows/ci.yml`): Python syntax check + shell lint — **fails the PR** if any check errors. Uses `+` batch mode (not `\;` which always exits 0).
 - **Maria can bypass** branch protection for true emergencies (documented in §3 rule 1).
 

@@ -56,4 +56,5 @@ When Hermes finishes work, MUST comment on the GitHub issue:
 - `.github/ISSUE_TEMPLATE/story.md`
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml` (Python syntax + shell lint, fails on error)
-- Branch protection on `main`: require PR + 1 approval + CI checks, linear history enabled
+- Branch protection on `main`: PR required, **0 approvals required**, linear history (squash/rebase), no force pushes, `enforce_admins` on. CI checks are NOT enforced by GitHub, so confirm `syntax-check` and `shell-lint` are green before you merge.
+- Merging: you may merge your own non-`@platform:cursor` PRs once CI is green. Maria merges `@platform:cursor` PRs and any PR changing branch protection, CI, or the workflow policy. Never use `gh pr merge --admin` or disable branch protection for a routine merge.
