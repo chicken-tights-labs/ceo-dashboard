@@ -10,7 +10,7 @@
 | **Implementer** | Cursor (Agent mode) | All `@platform:cursor` stories |
 | **Hermes Worker** | Hermes | Non-`@platform:cursor` stories (auto-spawned) |
 | **Reviewer** | Maria (manual) or Cursor | PR review — `needs-review` label gates merge |
-| **Merger** | Maria (manual) | Merges PR to `main` only after approval |
+| **Merger** | Maria (manual) | Merges PR to `main` after approval. May bypass branch protection for docs/cron-fix PRs only (see §8). |
 | **Deployer** | Hermes (post-merge) | `git pull` + `systemctl restart ceo-dashboard` |
 
 ## 2. State Machine
@@ -30,7 +30,7 @@
 
 ## 3. Hard Rules for Hermes
 
-1. **No direct pushes to `main`.** For a production fix that can't wait, use a `hotfix/` branch and an expedited PR. Maria bypasses branch protection only for a true service outage, and a retro issue is filed afterward.
+1. **No direct pushes to `main`.** For a production fix that can't wait, use a `hotfix/` branch and an expedited PR. Maria may bypass branch protection for docs and cron-fix PRs only, with a handoff comment on the issue each time. For a true service outage, file a retro issue afterward.
 2. **Do not implement stories assigned to `@platform:cursor`.** These are Cursor's terminal lane — they wait for manual pickup in Cursor IDE.
 3. **Do not close an issue or mark a card `done` before the PR merges AND the VM is updated.**
 4. **After merge:** `git pull origin main` → `sudo systemctl restart ceo-dashboard` → verify with `curl -s http://127.0.0.1:8081/api/state | jq .`
@@ -83,7 +83,7 @@ When Hermes finishes or fixes work, add a comment on the GitHub issue covering:
 
 - **Branch protection on `main`** (GitHub repo settings): require PR before merging, require status checks, require 1 approval.
 - **CI check** (`.github/workflows/ci.yml`): Python syntax check + shell lint — **fails the PR** if any check errors. Uses `+` batch mode (not `\;` which always exits 0).
-- **Maria can bypass** branch protection for true emergencies (documented in §3 rule 1).
+- **Maria can bypass** branch protection for docs and cron-fix PRs only, with a handoff comment on the issue each time (documented in §3 rule 1). For true emergencies, file a retro issue afterward.
 
 ## 9. Principles (Restored from .cursorrules)
 

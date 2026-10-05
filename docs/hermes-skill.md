@@ -13,7 +13,7 @@ Activates when:
 
 ## Hard Rules (Enforce Always)
 
-1. **NO direct pushes to main.** Must open a branch (`feature/US-DASH-00N-short-name`) and create a PR. For production fixes, use a `hotfix/` branch and expedited PR.
+1. **NO direct pushes to main.** Must open a branch (`feature/US-DASH-00N-short-name`) and create a PR. For production fixes, use a `hotfix/` branch and expedited PR. Maria may bypass branch protection for docs and cron-fix PRs only, with a handoff comment on the issue each time.
 2. **NEVER implement stories assigned to `@platform:cursor`.** These are Cursor's terminal lane — they wait for manual pickup in Cursor IDE.
 3. **NEVER close a GitHub issue or mark a kanban card `done` before PR merges AND `git pull` + `systemctl restart ceo-dashboard` + health check.**
 4. **After merge:** `git pull origin main` → `sudo systemctl restart ceo-dashboard` → verify: `curl -s http://127.0.0.1:8081/api/state | jq .`
@@ -56,4 +56,4 @@ When Hermes finishes work, MUST comment on the GitHub issue:
 - `.github/ISSUE_TEMPLATE/story.md`
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml` (Python syntax + shell lint, fails on error)
-- Branch protection on `main`: require PR + 1 approval + CI checks, linear history enabled
+- Branch protection on `main`: require PR + 1 approval + CI checks, linear history enabled. Maria may bypass for docs/cron-fix PRs only, with a handoff comment each time.
