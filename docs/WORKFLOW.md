@@ -9,7 +9,7 @@
 | **Issue Creator** | Hermes (via auto-ticket-creator cron) or Cursor | Converts Gherkin stories → GitHub issue + kanban card |
 | **Implementer** | Cursor (Agent mode) | All `@platform:cursor` stories |
 | **Hermes Worker** | Hermes | Non-`@platform:cursor` stories (auto-spawned) |
-| **Reviewer** | Maria (manual) or Cursor | PR review — `needs-review` label gates merge |
+| **Reviewer** | Maria (manual) or Cursor | PR review — `needs-review` label is informational only (see §2) |
 | **Merger** | Maria; Hermes for its own non-`@platform:cursor` PRs | Merges PR to `main` once CI is green. GitHub requires no approval (see section 8), so the merger checks CI by hand. Maria merges all `@platform:cursor` PRs and any PR that changes branch protection, CI, or this policy |
 | **Deployer** | Hermes (post-merge) | `git pull` + `systemctl restart ceo-dashboard` |
 
@@ -26,7 +26,7 @@
 - The GitHub issue **auto-closes** on PR merge (via `Closes #N`). The kanban card does **not** move to `done` until the VM is deployed and verified.
 - **Never** close a GitHub issue or move a card to `done` based on VM-only state (code running on the VM but not merged to `main`).
 - Hermes kanban `done` = PR merged **AND** `git pull` + `systemctl restart ceo-dashboard` + health check passed on the VM.
-- `needs-review` label is set only when a PR is waiting on a human. Never set it on a story with no branch.
+- `needs-review` label is informational only — it does NOT gate merge. Set it when a PR is waiting on a human. Never set it on a story with no branch.
 
 ## 3. Hard Rules for Hermes
 
