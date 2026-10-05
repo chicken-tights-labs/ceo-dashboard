@@ -40,16 +40,22 @@ STATE_FILE = Path(
 WORKER_MODEL = "claude-3.5-sonnet"
 
 # ── Gherkin parser ────────────────────────────────────────────────────────────
-# Matches: Scenario: NAME → gherkin code block containing @cursor tag
-# Looks for @cursor anywhere in the scenario block (before Scenario: or in gherkin body)
+# Matches @cursor tags before Scenario: + Scenario: NAME + gherkin body
+# Captures @tags on lines above "Scenario:" (valid Gherkin syntax),
+# plus @tags within the body after Scenario:.
+# Fixed: now handles indented @cursor before Scenario: (story template format)
+# Fixed: now handles Feature: boundary inside gherkin blocks
+# Fixed: case-insensitive @cursor detection
 SCENARIO_RE = re.compile(
-    r"Scenario:\s*(.+?)\s*\n"    # group 1: scenario name
-    r"(.*?)"                        # group 2: everything until next Scenario or Feature
-    r"(?=Scenario:|##\s+Feature:|$)",  # lookahead for next boundary
+    r"((?:[ \t]*@[^\n]*\n)*)"       # group 1: leading @tags (before Scenario:)
+    r"[ \t]*Scenario:\s*(.+?)\s*\n" # group 2: scenario name (allow indent)
+    r"(.*?)"                        # group 3: everything until next Scenario or Feature
+    r"(?=Scenario:|Feature:|##\s+Feature:|\Z)",  # lookahead for next boundary
     re.DOTALL,
 )
 
-GHERKIN_BLOCK_RE = re.compile(r"```gherkin\n(.*?)\n```", re.DOTALL)
+GHERKIN_BLOCK_RE = re.compile(r"```gherkin\n(.*?)```", re.DOTALL)
+
 
 def parse_gherkin_file(path: str) -> list[dict]:
     """Extract Gherkin scenarios with @cursor tags from the requirements file."""
@@ -63,25 +69,28 @@ def parse_gherkin_file(path: str) -> list[dict]:
     scenarios: list[dict] = []
 
     for m in SCENARIO_RE.finditer(content):
-        name = m.group(1).strip()
-        scenario_block = m.group(2)
+        name = m.group(2).strip()
+        leading_tags = m.group(1)
+        scenario_body = m.group(3)
 
-        # Check for @cursor in the scenario block
-        tags = re.findall(r"@[\w\-]+", scenario_block)
-        if "@cursor" not in tags:
+        # Check for @cursor in both leading tags and body (case-insensitive)
+        all_content = leading_tags + scenario_body
+        tags = re.findall(r"@\w[\w\-]+", all_content)
+        tags_normalized = [t.lower() for t in tags]
+        if "@cursor" not in tags_normalized:
             continue
 
         # Extract gherkin content from code block
-        gherkin_match = GHERKIN_BLOCK_RE.search(scenario_block)
+        gherkin_match = GHERKIN_BLOCK_RE.search(all_content)
         if gherkin_match:
             gherkin_body = gherkin_match.group(1).strip()
         else:
-            gherkin_body = scenario_block.strip()
+            gherkin_body = all_content.strip()
 
         scenarios.append({
             "name": name,
             "gherkin": f"Scenario: {name}\n{gherkin_body}",
-            "tags": tags,
+            "tags": tags_normalized,
         })
 
     return scenarios

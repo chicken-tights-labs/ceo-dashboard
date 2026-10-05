@@ -40,3 +40,7 @@ Feature: <feature name>
 ## Open Questions
 
 <!-- Anything blocking implementation -->
+
+---
+
+> **Note on auto-ticketing**: The auto-ticket creator scans `tasks/requirements.md` for `@cursor` scenarios — it does **not** read GitHub issues. To auto-generate a kanban ticket, write the Gherkin in `tasks/requirements.md` (the script now supports `@cursor` tags before `Scenario:`, matching this template's format). GitHub issues created from this template track work manually.
