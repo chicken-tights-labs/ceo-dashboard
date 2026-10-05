@@ -99,20 +99,21 @@ The app has only two routes: `/` (HTML dashboard) and `/api/state` (JSON). `curl
 4. **Kanban DB board name**: Path contains `salesforce-headless-dev`. If board name changes, update this file and `tasks/architecture.md`.
 5. **Auto-ticket creator reads only requirements.md**: The script scans `tasks/requirements.md` for `@cursor` scenarios. It does **not** read GitHub issues. To auto-generate kanban tickets, write Gherkin in requirements.md.
 6. **Logs go to two places**: systemd writes to `/tmp/dashboard-server.log` AND to journald (`journalctl -u ceo-dashboard --no-pager`). The `/tmp` file is not rotated — watch for disk growth.
-7. **Cron wrappers are VM copies**: Shell wrappers at `~/.hermes/scripts/` are manually copied from the repo's `scripts/`. After any PR touching `scripts/*.sh` or `src/*.py`, pull on the VM and re-copy the shell wrapper. See "Cron Script-to-Python Mapping" below. The shell wrappers themselves track the repo `.py` paths, so syncing the wrapper is sufficient — the cron entry always calls `~/.hermes/scripts/<name>.sh`.
+7. **Repo-managed cron scripts must be executable and called by repo path**: The crontab entries for `kanban_mirror.sh` and `auto_ticket_creator.sh` point directly at `/home/maria_robbins/sf-project/ceo-dashboard/scripts/`. There are no copies in `~/.hermes/scripts/` to keep in sync. The scripts are committed with the executable bit; if a cron run fails with "Permission denied", run `chmod +x scripts/*.sh` in the clone. See "Cron Script-to-Python Mapping" below.
 
 ## Cron Script-to-Python Mapping
 
 Single source of truth for which file each cron entry executes. Prevents VM-to-repo drift.
 
-| Cron Entry | Shell Script (VM copy) | Python Script (repo path) | Python |
+| Cron Entry | Shell Script (repo path, called directly by cron) | Python Script (repo path) | Python |
 |---|---|---|---|
-| `0 9,21 * * *` | `~/.hermes/scripts/kanban_mirror.sh` | `src/kanban_mirror.py` | system `python3` (stdlib only) |
-| `3 * * * *` | `~/.hermes/scripts/auto_ticket_creator.sh` | `scripts/auto_ticket_creator.py` | system `python3` (stdlib only) |
+| `0 9,21 * * *` | `/home/maria_robbins/sf-project/ceo-dashboard/scripts/kanban_mirror.sh` | `src/kanban_mirror.py` | system `python3` (stdlib only) |
+| `3 * * * *` | `/home/maria_robbins/sf-project/ceo-dashboard/scripts/auto_ticket_creator.sh` | `scripts/auto_ticket_creator.py` | system `python3` (stdlib only) |
+| `*/15 * * * *` | `/home/maria_robbins/sf-project/ceo-dashboard/scripts/github_sync.sh` | `scripts/github_sync.py` | system `python3` (stdlib only; needs authenticated `gh` on PATH) |
 | `0 23 * * *` | `~/.hermes/scripts/journal_obsidian.py` | N/A (inline) | system `python3` |
 | `0 * * * *` | `~/scripts/sync-obsidian-vault.sh` | N/A (rclone) | N/A |
 | `0 3 1,4,7,10 *` | `~/.hermes/scripts/hermes-backup.sh` | N/A | N/A |
 | `0 3 1 *` | `~/.hermes/scripts/security-audit.sh` | N/A | N/A |
 | `55 10 * * *` (PAUSED) | `~/.hermes/skills/.../researchrover_daily.py` | N/A | N/A |
 
-**Rule**: After any PR touching `scripts/*.sh` or `src/*.py`, pull on the VM and re-copy the shell wrapper to `~/.hermes/scripts/`. Verify with `diff`.
+**Rule**: For the two repo-managed cron jobs above, `git pull origin main` on the VM is the only deploy step. Do not copy these scripts anywhere. The other rows (journal, backup, security audit, vault sync) are not in the repo and are unchanged.

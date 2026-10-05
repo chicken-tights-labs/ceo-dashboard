@@ -3,8 +3,9 @@
 A lightweight, visual workflow system for tracking Salesforce development work — bridging Obsidian requirements, Hermes Kanban, and Cursor development.
 
 ## Features
-- **Static Kanban Mirror**: Hourly exports of board status to markdown
+- **Static Kanban Mirror**: Twice-daily (09:00 and 21:00) exports of board status to markdown
 - **Auto-Ticket Creator**: Gherkin stories in Obsidian → Kanban tickets
+- **GitHub Sync Bridge**: Every 15 minutes, open GitHub issues become kanban cards and open PRs (`Closes #N`) move cards to review (`scripts/github_sync.py`)
 - **Live Dashboard UI**: Web interface at hermes.chickentightslabs.com/ceo-dashboard
 
 ## Structure
@@ -36,9 +37,9 @@ ceo-dashboard/
 python3 src/kanban_mirror.py
 ```
 
-### Schedule hourly (cron)
+### Schedule twice daily (cron)
 ```cron
-0 * * * * /path/to/scripts/kanban_mirror.sh
+0 9,21 * * * /home/maria_robbins/sf-project/ceo-dashboard/scripts/kanban_mirror.sh
 ```
 
 ### Output

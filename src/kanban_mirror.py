@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Kanban Mirror - Exports kanban board state to markdown
-Runs on cron (hourly) to keep Obsidian vault synced
+Runs on cron (twice daily, 09:00 and 21:00) to keep Obsidian vault synced
 """
 import sqlite3
 import os
@@ -36,7 +36,7 @@ def generate_mirror_markdown(tasks):
     
     lines.append(f"# Kanban Board Mirror — Salesforce Headless CRM")
     lines.append("")
-    lines.append(f"_Auto-generated every hour from Hermes Kanban DB_")
+    lines.append(f"_Auto-generated twice daily from Hermes Kanban DB_")
     lines.append(f"Last updated: {now}")
     lines.append("")
 
