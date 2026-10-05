@@ -48,7 +48,7 @@ A healthy `/api/state` returns JSON with `board` (ready/todo/running/blocked/don
 |---|---|---|
 | systemd (`ceo-dashboard.service`) | venv: `/home/maria_robbins/.hermes/hermes-agent/venv/bin/python` | App uses FastAPI/uvicorn which need venv packages |
 | cron (`auto_ticket_creator.sh`) | system `python3` | Script uses only stdlib (hashlib, json, re, sqlite3, uuid) |
-| cron (`kanban_mirror.sh`) | system `python3` | Script uses only stdlib (sqlite3, os, time, datetime, pathlib); it does not import hermes modules. `PYTHONPATH` is exported by the wrapper but not needed by the current script |
+| cron (`kanban_mirror.sh`) | system `python3` | Script uses only stdlib (sqlite3, os, time, datetime, pathlib); it does not import hermes modules. `PYTHONPATH` is exported by the wrapper but not needed by the current script. **Calls the repo's `src/kanban_mirror.py`, not `~/.hermes/tools/` — see "Cron Script-to-Python Mapping" below. |
 | Manual dev runs | venv for app, `python3` for scripts | Match each component's needs |
 
 ## Path Prefix Handling (Two Layers)
@@ -93,8 +93,26 @@ The app has only two routes: `/` (HTML dashboard) and `/api/state` (JSON). `curl
 ## Known Gotchas
 
 1. **Never pass the venv binary to `python3` (the real bug)**: `kanban_mirror.sh` used to run `python3 /home/maria_robbins/.hermes/hermes-agent/venv/bin/python /home/maria_robbins/.hermes/tools/kanban_mirror.py`. That tells system `python3` to execute the venv `python` *binary* as if it were a script, which fails immediately with a `SyntaxError`. Fixed in `f1b363f`. Rule: run a script with **either** `python3 script.py` **or** `/path/to/venv/bin/python script.py` — never both in one command. Cron scripts use system `python3`; only the FastAPI/uvicorn app (systemd) needs the venv.
+
 2. **Dual prefix stripping**: NGINX and the app both strip `/ceo-dashboard`. Redundant but harmless behind NGINX. Documented here to avoid confusion if someone changes one layer.
 3. **No /health endpoint**: Use `curl -s http://127.0.0.1:8081/api/state | jq .` instead.
 4. **Kanban DB board name**: Path contains `salesforce-headless-dev`. If board name changes, update this file and `tasks/architecture.md`.
 5. **Auto-ticket creator reads only requirements.md**: The script scans `tasks/requirements.md` for `@cursor` scenarios. It does **not** read GitHub issues. To auto-generate kanban tickets, write Gherkin in requirements.md.
 6. **Logs go to two places**: systemd writes to `/tmp/dashboard-server.log` AND to journald (`journalctl -u ceo-dashboard --no-pager`). The `/tmp` file is not rotated — watch for disk growth.
+7. **Cron wrappers are VM copies**: Shell wrappers at `~/.hermes/scripts/` are manually copied from the repo's `scripts/`. After any PR touching `scripts/*.sh` or `src/*.py`, pull on the VM and re-copy the shell wrapper. See "Cron Script-to-Python Mapping" below. The shell wrappers themselves track the repo `.py` paths, so syncing the wrapper is sufficient — the cron entry always calls `~/.hermes/scripts/<name>.sh`.
+
+## Cron Script-to-Python Mapping
+
+Single source of truth for which file each cron entry executes. Prevents VM-to-repo drift.
+
+| Cron Entry | Shell Script (VM copy) | Python Script (repo path) | Python |
+|---|---|---|---|
+| `0 9,21 * * *` | `~/.hermes/scripts/kanban_mirror.sh` | `src/kanban_mirror.py` | system `python3` (stdlib only) |
+| `3 * * * *` | `~/.hermes/scripts/auto_ticket_creator.sh` | `scripts/auto_ticket_creator.py` | system `python3` (stdlib only) |
+| `0 23 * * *` | `~/.hermes/scripts/journal_obsidian.py` | N/A (inline) | system `python3` |
+| `0 * * * *` | `~/scripts/sync-obsidian-vault.sh` | N/A (rclone) | N/A |
+| `0 3 1,4,7,10 *` | `~/.hermes/scripts/hermes-backup.sh` | N/A | N/A |
+| `0 3 1 *` | `~/.hermes/scripts/security-audit.sh` | N/A | N/A |
+| `55 10 * * *` (PAUSED) | `~/.hermes/skills/.../researchrover_daily.py` | N/A | N/A |
+
+**Rule**: After any PR touching `scripts/*.sh` or `src/*.py`, pull on the VM and re-copy the shell wrapper to `~/.hermes/scripts/`. Verify with `diff`.

@@ -106,7 +106,8 @@ def generate_mirror_markdown(tasks):
             lines.append("")
 
     # Recently updated (last 5)
-    conn = sqlite3.connect(KANBAN_DB)
+    conn = sqlite3.connect(KANBAN_DB, timeout=30)
+    conn.execute("PRAGMA busy_timeout = 30000")
     recent = conn.execute(
         "SELECT id, title, status, created_at FROM tasks WHERE status != 'archived' ORDER BY created_at DESC LIMIT 5"
     ).fetchall()
