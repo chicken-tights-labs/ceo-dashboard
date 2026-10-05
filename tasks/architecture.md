@@ -10,8 +10,6 @@ The CEO Dashboard operates as a three-layer system:
      `src/dashboard_server.py` and `src/kanban_mirror.py` use 30000 ms
      (`sqlite3.connect(..., timeout=30)` + `PRAGMA busy_timeout = 30000`);
      `scripts/auto_ticket_creator.py` uses 5000 ms.
-   - Known gap: the "Recently Added" query in `src/kanban_mirror.py` opens a second
-     connection with no timeout (tracked for follow-up).
 
 2. **Service Layer**: FastAPI micro-service on port 8081
    - Endpoints:
