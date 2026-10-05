@@ -2,7 +2,7 @@
 name: Story
 about: A user story with Gherkin acceptance criteria
 title: 'US-DASH-00N: '
-labels: ['needs-review']
+labels: ['platform:cursor']
 assignees: []
 ---
 

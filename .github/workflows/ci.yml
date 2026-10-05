@@ -15,7 +15,7 @@ jobs:
           python-version: '3.11'
       - name: Python syntax check
         run: |
-          find . -name "*.py" -not -path "./.git/*" -exec python -m py_compile {} \;
+          find . -name "*.py" -not -path "./.git/*" -exec python -m py_compile {} +
   shell-lint:
     runs-on: ubuntu-latest
     steps:
@@ -24,4 +24,4 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: Shell script lint
         run: |
-          find . -name "*.sh" -not -path "./.git/*" -exec shellcheck {} \; || true
+          find . -name "*.sh" -not -path "./.git/*" -exec shellcheck {} +

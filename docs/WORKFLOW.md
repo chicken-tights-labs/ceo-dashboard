@@ -17,19 +17,20 @@
 
 | Kanban Card Status | GitHub Issue State | GitHub PR State | Who moves it |
 |---|---|---|---|
-| `ready` | open | — | Issue creator |
+| `ready` | open | — | Issue creator (Hermes auto-ticketer or Cursor) |
 | `review` | open | OPEN (draft or full) | Implementer (on PR open) |
-| `done` | closed | MERGED | Merger (after merge + deploy) |
+| `done` | closed | MERGED | **Merger** merges PR, then **Deployer** deploys to VM |
 
 **Rules:**
 - A card and its issue stay **open** until the PR is merged.
+- The GitHub issue **auto-closes** on PR merge (via `Closes #N`). The kanban card does **not** move to `done` until the VM is deployed and verified.
 - **Never** close a GitHub issue or move a card to `done` based on VM-only state (code running on the VM but not merged to `main`).
-- Hermes kanban `done` = PR merged **AND** `git pull` + `systemctl restart ceo-dashboard` completed on the VM.
+- Hermes kanban `done` = PR merged **AND** `git pull` + `systemctl restart ceo-dashboard` + health check passed on the VM.
 - `needs-review` label is set only when a PR is waiting on a human. Never set it on a story with no branch.
 
 ## 3. Hard Rules for Hermes
 
-1. **No direct pushes to `main`.** If a production fix can't wait for a PR, open a PR immediately afterward.
+1. **No direct pushes to `main`.** For a production fix that can't wait, use a `hotfix/` branch and an expedited PR. Maria bypasses branch protection only for a true service outage, and a retro issue is filed afterward.
 2. **Do not implement stories assigned to `@platform:cursor`.** These are Cursor's terminal lane — they wait for manual pickup in Cursor IDE.
 3. **Do not close an issue or mark a card `done` before the PR merges AND the VM is updated.**
 4. **After merge:** `git pull origin main` → `sudo systemctl restart ceo-dashboard` → verify with `curl -s http://127.0.0.1:8081/api/state | jq .`
@@ -80,11 +81,21 @@ When Hermes finishes or fixes work, add a comment on the GitHub issue covering:
 
 ## 8. Guardrails
 
-- **Branch protection on `main`** (GitHub repo settings): require PR before merging, require status checks
-- **CI check** (`.github/workflows/ci.yml`): Python syntax check + shell lint — must pass before merge
-- **Maria can bypass** branch protection for true emergencies
+- **Branch protection on `main`** (GitHub repo settings): require PR before merging, require status checks, require 1 approval.
+- **CI check** (`.github/workflows/ci.yml`): Python syntax check + shell lint — **fails the PR** if any check errors. Uses `+` batch mode (not `\;` which always exits 0).
+- **Maria can bypass** branch protection for true emergencies (documented in §3 rule 1).
 
-## 9. Where This Doc Lives
+## 9. Principles (Restored from .cursorrules)
+
+- **Docs-as-code**: If the running app and docs disagree, change the doc in the same PR. Never let them drift.
+- **GitHub `main` is the only finished copy**: Code running on the VM but not merged is not "done."
+- **Terminal lane**: Tasks assigned to `@platform:cursor` are Cursor's terminal lane — Hermes will NOT auto-spawn workers for them. If a previously auto-spawned task crashed, set `max_retries=0` via SQL to trip the circuit breaker before reassigning:
+  ```sql
+  UPDATE tasks SET max_retries=0 WHERE id='t_dash_NN';
+  ```
+- **Deployment method**: Use `sudo systemctl restart ceo-dashboard`. Do NOT use `cd ~/.hermes/tools && python3 ceo_dashboard_fastapi.py &` — that is the old pre-systemd method.
+
+## 10. Where This Doc Lives
 
 - Repo path: `docs/WORKFLOW.md` on `main`
 - `.cursorrules` points here (3-line pointer)
