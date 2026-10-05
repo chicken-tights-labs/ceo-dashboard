@@ -81,10 +81,26 @@ When Hermes finishes or fixes work, add a comment on the GitHub issue covering:
 
 ## 8. Guardrails
 
-- **Branch protection on `main`** (GitHub repo settings, as of 2026-10-05): require a PR before merging with **0 required approvals** (a solo owner cannot approve their own PR, which previously forced `--admin` merges), linear history (squash or rebase merges), no force pushes, no deletions, `enforce_admins` on.
-- **Required status checks are NOT enforced by GitHub.** `syntax-check` and `shell-lint` run on every PR, but a red check does not block the merge button. Until they are added under "Require status checks to pass", the merger must confirm CI is green before merging. With approvals at 0, this manual check is the only gate.
+- **Branch protection on `main`** (GitHub repo settings, as of 2026-10-05): require a PR before merging with **0 required approvals**, required status checks (**`syntax-check`, `shell-lint`**), linear history (squash or rebase merges), no force pushes, no deletions, `enforce_admins` on.
+- **Required status checks ARE enforced.** A red `syntax-check` or `shell-lint` blocks the merge button. This is the only automated gate, so it is what protects `main`.
 - **CI check** (`.github/workflows/ci.yml`): Python syntax check + shell lint — **fails the PR** if any check errors. Uses `+` batch mode (not `\;` which always exits 0).
 - **Maria can bypass** branch protection for true emergencies (documented in §3 rule 1).
+
+### Decision record: merge policy (US-DASH-010, resolved 2026-10-05)
+
+**Adopted: Option 2 — 0 required approvals, CI enforced.**
+
+Options 1 and 3 were both rejected as **unbuildable**, not merely undesirable:
+
+- `chicken-tights-labs` is a GitHub **User** account and the repo's **sole collaborator**. Maria, Hermes, and Cursor all act as that single identity, and GitHub does not let an account approve its own PR.
+- Option 1 ("Maria approves and merges") requires an approval that can never exist.
+- Option 3 ("bypass for docs/cron-fix PRs only") assumes approvals are 1 — with approvals already at 0 there is nothing to bypass, so the option is a no-op.
+- This is why PR #18 needed `--admin`: the previous config (1 approval) forced it. `--admin` is now unnecessary for routine merges and is disallowed by §3 rule 1.
+
+If independent review is ever wanted, add a **second collaborator account**; then Option 1 or 3 become possible. Until then, enforced CI is the gate.
+
+**History:** #20 recorded "option 3" (comment, 12:09) and commit `a766e4a` documented option 3 on a branch that was never opened as a PR. The live settings were option 2. This decision supersedes both and resolves the mismatch.
+
 
 ## 9. Principles (Restored from .cursorrules)
 
