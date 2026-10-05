@@ -48,7 +48,7 @@ A healthy `/api/state` returns JSON with `board` (ready/todo/running/blocked/don
 |---|---|---|
 | systemd (`ceo-dashboard.service`) | venv: `/home/maria_robbins/.hermes/hermes-agent/venv/bin/python` | App uses FastAPI/uvicorn which need venv packages |
 | cron (`auto_ticket_creator.sh`) | system `python3` | Script uses only stdlib (hashlib, json, re, sqlite3, uuid) |
-| cron (`kanban_mirror.sh`) | system `python3` | Imports hermes kanban tools via PYTHONPATH |
+| cron (`kanban_mirror.sh`) | system `python3` | Script uses only stdlib (sqlite3, os, time, datetime, pathlib); it does not import hermes modules. `PYTHONPATH` is exported by the wrapper but not needed by the current script |
 | Manual dev runs | venv for app, `python3` for scripts | Match each component's needs |
 
 ## Path Prefix Handling (Two Layers)
@@ -92,7 +92,7 @@ The app has only two routes: `/` (HTML dashboard) and `/api/state` (JSON). `curl
 
 ## Known Gotchas
 
-1. **python3-on-venv mismatch (the real bug)**: Cron scripts run `python3 script.py` (system Python) — NOT the venv binary. Running `venv/bin/python` from cron for stdlib-only scripts causes issues because the venv binary looks for packages in `__pycache__` paths that don't exist in the cron environment. Fix: use `python3 script.py` with `PYTHONPATH=/home/maria_robbins/.hermes/hermes-agent` for scripts that import hermes modules. Only the FastAPI/uvicorn app needs the venv.
+1. **Never pass the venv binary to `python3` (the real bug)**: `kanban_mirror.sh` used to run `python3 /home/maria_robbins/.hermes/hermes-agent/venv/bin/python /home/maria_robbins/.hermes/tools/kanban_mirror.py`. That tells system `python3` to execute the venv `python` *binary* as if it were a script, which fails immediately with a `SyntaxError`. Fixed in `f1b363f`. Rule: run a script with **either** `python3 script.py` **or** `/path/to/venv/bin/python script.py` — never both in one command. Cron scripts use system `python3`; only the FastAPI/uvicorn app (systemd) needs the venv.
 2. **Dual prefix stripping**: NGINX and the app both strip `/ceo-dashboard`. Redundant but harmless behind NGINX. Documented here to avoid confusion if someone changes one layer.
 3. **No /health endpoint**: Use `curl -s http://127.0.0.1:8081/api/state | jq .` instead.
 4. **Kanban DB board name**: Path contains `salesforce-headless-dev`. If board name changes, update this file and `tasks/architecture.md`.
