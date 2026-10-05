@@ -23,6 +23,28 @@ The CEO Dashboard operates as a three-layer system:
    - Served behind Cloudflare Tunnel with BYPASS policy for laptop IP
    - Accessible at: hermes.chickentightslabs.com/ceo-dashboard/
 
+## Board Statuses
+
+The dashboard is **status-agnostic**. `get_board_state()` seeds its columns from
+`STATUS_ORDER` and then appends any status actually present in the DB, so a card
+in a status the page has never seen still renders (in its own column) instead of
+raising `KeyError` and returning HTTP 500 for the whole board.
+
+Hermes' kanban accepts nine statuses (`hermes_cli/kanban_db.py`):
+
+```
+{"triage", "todo", "scheduled", "ready", "running", "blocked", "review", "done", "archived"}
+```
+
+`archived` is excluded by the board query's `WHERE status != 'archived'` filter;
+the other eight are displayed. `STATUS_ORDER`, `STATUS_COLORS` and `STATUS_LABELS`
+in `src/dashboard_server.py` should stay a superset of those eight. An unrecognised
+status falls back to `UNKNOWN_STATUS_COLOR` and its raw name as the column heading.
+
+This matters because `scripts/github_sync.py` moves cards to `review` automatically
+when an open PR contains `Closes #N`. Regression coverage lives in
+`tests/test_dashboard_status.py`.
+
 ## Routing & Prefix Stripping
 
 **Two layers strip the prefix:**
@@ -69,6 +91,6 @@ The app sets `allow_origins=["*"]` combined with `allow_credentials=True`. This 
 - `/tmp/dashboard-server.log` is not log-rotated — monitor for disk growth
 
 ## Known Gotchas
-- **No `/health` endpoint**: Use `curl -s http://127.0.0.1:8081/api/state | jq .` for health checks
+- **Board statuses are dynamic**: The dashboard renders whatever statuses exist in the DB (see "Board Statuses" above). Do not hardcode a status list in the template — pass `status_order` from `get_board_state()`.
 - **Cron uses system python3**: Not the venv binary. Scripts are stdlib-only; only the FastAPI app uses the venv.
 - **Dual prefix stripping**: Both NGINX and the app strip `/ceo-dashboard`. Redundant but harmless behind NGINX.
