@@ -6,7 +6,12 @@ The CEO Dashboard operates as a three-layer system:
 1. **Data Layer**: Reads from Hermes Kanban SQLite DB
    - Path: `/home/maria_robbins/.hermes/kanban/boards/salesforce-headless-dev/kanban.db`
    - Query pattern: SELECT tasks by status, group by status/assignee
-   - Connection includes `busy_timeout=5000` to handle concurrent access from cron jobs
+   - Connections set a SQLite busy timeout to handle concurrent access from cron jobs:
+     `src/dashboard_server.py` and `src/kanban_mirror.py` use 30000 ms
+     (`sqlite3.connect(..., timeout=30)` + `PRAGMA busy_timeout = 30000`);
+     `scripts/auto_ticket_creator.py` uses 5000 ms.
+   - Known gap: the "Recently Added" query in `src/kanban_mirror.py` opens a second
+     connection with no timeout (tracked for follow-up).
 
 2. **Service Layer**: FastAPI micro-service on port 8081
    - Endpoints:
@@ -30,7 +35,7 @@ The CEO Dashboard operates as a three-layer system:
 When behind NGINX, the app's stripper is redundant (NGINX already stripped it). Both must agree on which strips — currently both do.
 
 ## CORS
-The app sets `allow_origins=["*"]` combined with `allow_credentials=True`. This is a known issue (out of scope for this PR — see `tasks/architecture.md` out-of-scope list) and should be tightened to specific origins.
+The app sets `allow_origins=["*"]` combined with `allow_credentials=True`. This is a known issue and should be tightened to specific origins. It is not yet tracked as its own story; file one before changing it.
 
 ## Deployment Flow
 1. Repo lives at `/home/maria_robbins/sf-project/ceo-dashboard`
