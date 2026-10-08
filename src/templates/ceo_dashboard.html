@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="60"> <!-- Auto-refresh every 60s (US-DASH-003) -->
+    <title>CEO Dashboard — Executive View</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { mono: ['SF Mono', 'Monaco', 'monospace'] },
+                    colors: {
+                        aiGreen: '#dcfce8',
+                        aiGreenText: '#16a34a',
+                        humanBlue: '#dbeafe',
+                        humanBlueText: '#2563eb',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'SF Mono', 'Monaco', monospace; }
+        .ai-row { background-color: #dcfce8; }
+        .ai-row:hover { background-color: #c8e6c9; }
+        .human-row { background-color: #dbeafe; }
+        .human-row:hover { background-color: #bfdbfe; }
+        .status-badge { font-size: 0.7rem; }
+    </style>
+</head>
+<body class="h-full bg-gray-900 text-gray-100">
+    <div class="container mx-auto px-4 py-6">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center gap-4">
+                <h1 class="text-2xl font-bold">🏢 CEO Dashboard</h1>
+                <span class="text-sm text-gray-500 bg-gray-800 px-2 py-0.5 rounded">DASH Tasks Only</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-sm text-gray-400">
+                    Last updated: {{ last_updated }}
+                </div>
+                <a href="/board" class="text-sm text-gray-400 hover:text-gray-200 underline">← Full Kanban Board</a>
+            </div>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="grid grid-cols-6 gap-4 mb-6">
+            <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-3xl font-bold text-blue-400">{{ stats.total }}</div>
+                <div class="text-sm text-gray-400">Total Active (DASH)</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-3xl font-bold text-green-400">{{ stats.ai_assigned }}</div>
+                <div class="text-sm text-gray-400">AI-Assigned</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-3xl font-bold text-blue-400">{{ stats.human_review }}</div>
+                <div class="text-sm text-gray-400">Human Review</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-3xl font-bold text-gray-400">{{ stats.queued }}</div>
+                <div class="text-sm text-gray-400">Queued</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-3xl font-bold text-yellow-400">{{ stats.in_progress + stats.review }}</div>
+                <div class="text-sm text-gray-400">In Progress</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-3xl font-bold text-emerald-400">{{ stats.complete }}</div>
+                <div class="text-sm text-gray-400">Complete</div>
+            </div>
+        </div>
+
+        <!-- Epic Groups -->
+        {% for epic_title, epic_data in epics.items() %}
+        <div class="mb-8">
+            <!-- Epic Header -->
+            <div class="flex items-center gap-3 mb-3 pb-2 border-b border-gray-700">
+                {% if epic_data.id %}
+                <span class="text-xs font-mono text-gray-500">t_{{ epic_data.id[-6:] }}</span>
+                {% endif %}
+                <h2 class="text-xl font-semibold text-gray-200">{{ epic_title }}</h2>
+                <span class="text-sm text-gray-500 bg-gray-800 rounded-full px-2 py-0.5">
+                    {{ epic_data.tasks | length }} tasks
+                </span>
+            </div>
+
+            <!-- Task Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-700">
+                            <th class="text-left py-2 text-gray-400 font-mono">ID</th>
+                            <th class="text-left py-2 text-gray-400">Title</th>
+                            <th class="text-left py-2 text-gray-400">Status</th>
+                            <th class="text-left py-2 text-gray-400">Type</th>
+                            <th class="text-left py-2 text-gray-400">Model</th>
+                            <th class="text-left py-2 text-gray-400">Created</th>
+                            <th class="text-left py-2 text-gray-400">Pri</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in epic_data.tasks %}
+                        {% if task.is_ai %}
+                        <tr class="ai-row border-b border-gray-700/50">
+                        {% else %}
+                        <tr class="human-row border-b border-gray-700/50">
+                        {% endif %}
+                            <td class="py-2 font-mono text-xs text-gray-500">
+                                t_{{ task.id }}
+                            </td>
+                            <td class="py-2">
+                                {{ task.title }}
+                            </td>
+                            <td class="py-2">
+                                {% set status = task.status %}
+                                <span class="status-badge px-2 py-0.5 rounded text-white"
+                                      style="background-color: {{ status_colors.get(status, unknown_status_color) }}">
+                                    {{ status_labels.get(status, status) }}
+                                </span>
+                            </td>
+                            <td class="py-2">
+                                {% if task.is_ai %}
+                                <span class="text-xs text-green-700 bg-green-200 px-2 py-0.5 rounded">
+                                    AI ({{ task.platform }})
+                                </span>
+                                {% else %}
+                                <span class="text-xs text-blue-700 bg-blue-200 px-2 py-0.5 rounded">
+                                    Human Review
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="py-2 text-gray-400">
+                                {% if task.model != "—" and task.model != "-" %}
+                                {{ task.model }}
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                            <td class="py-2 text-gray-400">
+                                {{ task.created }}
+                            </td>
+                            <td class="py-2 text-gray-400">
+                                {{ task.priority }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty state -->
+            {% if not epic_data.tasks %}
+            <div class="text-center text-gray-500 py-8">
+                No tasks in this epic
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <!-- No DASH tasks state -->
+        {% if not epics %}
+        <div class="text-center text-gray-500 py-12">
+            <p class="text-lg">No DASH tasks found in the kanban board.</p>
+            <p class="text-sm mt-2">Ensure tasks with US-DASH prefix or EPIC-05/EPIC-06 epics exist.</p>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
